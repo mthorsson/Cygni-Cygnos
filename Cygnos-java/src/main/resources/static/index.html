@@ -3,6 +3,7 @@
 <html>
 <head>
     <title>Cygnos music player</title>
+    <b>hej</b>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
     <script type='text/javascript'>
         $(document)
@@ -27,13 +28,13 @@
                 $("#stop").click(function () {
                     $.ajax({
                         type: "POST",
-                        url: "api/player/stop"
+                        url: "api/loopingplayer/stop"
                     });
                 })
                 $("#pause").click(function () {
                     $.ajax({
                         type: "POST",
-                        url: "api/player/pause"
+                        url: "api/loopingplayer/pause"
                     });
                 })
                 $("#results")
@@ -42,7 +43,7 @@
                         function () {
                             $.ajax({
                                 type: "POST",
-                                url: "api/player/play",
+                                url: "api/loopingplayer/play",
                                 contentType: "application/json",
                                 data: $(this).attr("data-trackData")
                             });
@@ -51,46 +52,76 @@
     </script>
     <script src="http://js.leapmotion.com/leap-0.6.3.min.js"></script>
     <script>
+
+        function startMusic() {
+
+            $.ajax({
+                url: "api/loopingplayer/state",
+                contentType: "application/json"
+            }).then(function (result) {
+                var url = result == 'Stopped'? 'playloop' : 'pause';
+
+                $.ajax({
+                    type: "POST",
+                    url: "api/loopingplayer/" + url,
+                    contentType: "application/json",
+                    data: null
+                });
+            });
+
+
+
+        }
+
+        function pauseMusic() {
+            $.ajax({
+                type: "POST",
+                url: "api/loopingplayer/pause"
+            });
+        }
+
         var controllerOptions = { enableGestures: true };
-        var lastCall = 0;
+        var lastMovementTime;
+        var playing = false;
+
+        var movementThreshold = 100000;
+
         Leap.loop(controllerOptions,
             function (frame) {
                 //Only accept one call every three seconds, to avoid flooding our poor little server
-                if (new Date() - lastCall < 3000)
-                    return;
-               
 
                 if (frame.hands.length > 0) {
+
                     //thumb down (vertical hand) to stop
                     for (var i = 0; i < frame.hands.length; i++) {
                         var hand = frame.hands[i];
-                        if (Math.abs(hand.palmNormal[0]) > 0.7) {
-                            $.ajax({
-                                type: "POST",
-                                url: "api/player/stop",
-                                contentType: "application/json",
-                            });
-                            $("#gesture").html("<i>thumb down</i>")
-                            lastCall = new Date();
-                        }
-                    }
 
-                    //Devil horns plays rock!
-                    for (var i = 0; i < frame.hands.length; i++) {
-                        var hand = frame.hands[i];
-                        if (hand.pinky.extended && !hand.ringFinger.extended && !hand.middleFinger.extended && hand.indexFinger.extended) {
-                            $.ajax({
-                                type: "POST",
-                                url: "api/player/stop",
-                                url: "api/player/play",
-                                contentType: "application/json",
-                                data: JSON.stringify({ "previewUrl": "https://p.scdn.co/mp3-preview/1ee9f1b0c3e3b327dd49ebc6dd64266b01adb96a" })
-                            });
-                            $("#gesture").html("<i>Devil horns</i>")
-                            lastCall = new Date();
+                        var movement = hand.palmVelocity[0] * hand.palmVelocity[0] + hand.palmVelocity[1] * hand.palmVelocity[1] +
+                                hand.palmVelocity[2] * hand.palmVelocity[2];
+
+                        if (movement > movementThreshold) {
+                            lastMovementTime = new Date();
                         }
                     }
                 }
+
+                if (lastMovementTime) {
+                    if (new Date() - lastMovementTime > 3000) {
+                        if (playing === true) {
+                            console.log("STOP");
+                            pauseMusic();
+                            playing = false;
+                        }
+                    }
+                    else {
+                        if (playing === false) {
+                            console.log("START");
+                            startMusic();
+                            playing = true;
+                        }
+                    }
+                }
+
             });
     </script>
 

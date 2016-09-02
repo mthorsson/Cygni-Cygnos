@@ -37,20 +37,23 @@ public class Mp3PlayerService {
         // Store the file temporarily on disk...
         Downloader downloader = new Downloader();
         String fileName = tmpDir + track.getId() + ".mp3";
-        downloader.download(new URL(track.getPreviewUrl()), new File(fileName));
+        if (!new File(fileName).exists()) {
+            downloader.download(new URL(track.getPreviewUrl()), new File(fileName));
+        }
 
         if (mediaPlayer != null) {
             stop();
         }
 
         // Now read
-        mediaPlayer = new MediaPlayer(new Media(
-                new File(fileName).toURI().toString()));
+        mediaPlayer = new MediaPlayer(new Media(new File(fileName).toURI().toString()));
         mediaPlayer.setVolume(volume);
-        mediaPlayer.setOnEndOfMedia(new Runnable() {
-            @Override
-            public void run() {
-                state = PlayerState.Stopped;
+        mediaPlayer.setOnEndOfMedia(() -> {
+            state = PlayerState.Stopped;
+            try {
+                Mp3PlayerService.this.play(track);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         });
         mediaPlayer.play();
