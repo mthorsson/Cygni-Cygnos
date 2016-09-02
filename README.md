@@ -1,2 +1,5 @@
-﻿# Cygni-Cygnos
-Startplatta på olika plattformar för höstkonferens 2016
+﻿# Cygni-Cygnos Team B
+
+Detta repo innehåller Team B:s lösning på konferensövningen!
+
+
